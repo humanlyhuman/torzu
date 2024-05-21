@@ -212,6 +212,8 @@ struct Values {
                                              &use_speed_limit};
     SwitchableSetting<bool> sync_core_speed{linkage, false, "sync_core_speed", Category::Core,
                                             Specialization::Default};
+    SwitchableSetting<bool> ir_cache{linkage, false, "ir_cache", Category::Core,
+                                            Specialization::Default};
 
     // Cpu
     SwitchableSetting<CpuBackend, true> cpu_backend{linkage,

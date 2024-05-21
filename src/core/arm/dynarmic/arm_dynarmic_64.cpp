@@ -2,6 +2,7 @@
 // SPDX-License-Identifier: GPL-2.0-or-later
 
 #include "common/settings.h"
+#include "common/fs/path_util.h"
 #include "core/arm/dynarmic/arm_dynarmic.h"
 #include "core/arm/dynarmic/arm_dynarmic_64.h"
 #include "core/arm/dynarmic/dynarmic_exclusive_monitor.h"
@@ -260,6 +261,11 @@ std::shared_ptr<Dynarmic::A64::Jit> ArmDynarmic64::MakeJit(Common::PageTable* pa
 
     // Unpredictable instructions
     config.define_unpredictable_behaviour = true;
+
+    // IR cache
+    if (Settings::values.ir_cache) {
+        config.ir_cache_path = Common::FS::GetYuzuPath(Common::FS::YuzuPath::RecompilerDir);
+    }
 
     // Timing
     config.wall_clock_cntpct = m_uses_wall_clock;

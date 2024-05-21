@@ -653,10 +653,24 @@ void Inst::SetArg(size_t index, Value value) {
 }
 
 void Inst::Serialize(const Block& block, std::vector<uint16_t>& fres) const {
+    fres.push_back(0xa91d);
+
     fres.push_back(static_cast<uint16_t>(GetOpcode()));
     fres.push_back(NumArgs());
     for (unsigned idx = 0; idx != NumArgs(); idx++)
         GetArg(idx).Serialize(block, fres);
+}
+
+Inst Inst::Deserialize(const std::vector<Inst*>& insts, std::vector<uint16_t>::iterator& it) {
+    const bool magic_ok = *(it++) == 0xa91d;
+    ASSERT_MSG(magic_ok, "Bad IR instruction magic");
+
+    Inst fres(static_cast<Opcode>(*(it++)));
+    const auto num_args = *(it++);
+    for (unsigned idx = 0; idx != num_args; idx++)
+        fres.SetArg(idx, Value::Deserialize(insts, it));
+
+    return fres;
 }
 
 void Inst::Invalidate() {

@@ -30,8 +30,12 @@ Block::Block(Block&&) = default;
 
 Block& Block::operator=(Block&&) = default;
 
-void Block::AppendNewInst(Opcode opcode, std::initializer_list<IR::Value> args) {
-    PrependNewInst(end(), opcode, args);
+Block::iterator Block::AppendNewInst(Opcode opcode, std::initializer_list<IR::Value> args) {
+    return PrependNewInst(end(), opcode, args);
+}
+
+Block::iterator Block::AppendNewInst(Inst&& inst) {
+    return PrependNewInst(end(), std::move(inst));
 }
 
 Block::iterator Block::PrependNewInst(iterator insertion_point, Opcode opcode, std::initializer_list<Value> args) {
@@ -44,6 +48,12 @@ Block::iterator Block::PrependNewInst(iterator insertion_point, Opcode opcode, s
     });
 
     return instructions.insert_before(insertion_point, inst);
+}
+
+Block::iterator Block::PrependNewInst(iterator insertion_point, Inst&& inst) {
+    IR::Inst* new_inst = new (instruction_alloc_pool->Alloc()) IR::Inst(std::move(inst));
+
+    return instructions.insert_before(insertion_point, new_inst);
 }
 
 LocationDescriptor Block::Location() const {
@@ -121,8 +131,141 @@ const size_t& Block::CycleCount() const {
 }
 
 void Block::Serialize(std::vector<uint16_t>& fres) const {
+    ASSERT(!empty());
+
+    fres.push_back(0xa91e);
+
+    fres.push_back(size());
     for (const auto& inst : *this)
         inst.Serialize(*this, fres);
+
+    SerializeTerminal(GetTerminal(), fres);
+    EndLocation().Serialize(fres);
+}
+
+void Block::Deserialize(std::vector<uint16_t>::iterator& it) {
+    ASSERT(empty());
+
+    const bool magic_ok = *(it++) == 0xa91e;
+    ASSERT_MSG(magic_ok, "Bad IR block magic");
+
+    const auto inst_count = *(it++);
+    ASSERT(inst_count > 0);
+    std::vector<Inst*> insts;
+    for (unsigned idx = 0; idx != inst_count; ++idx) {
+        auto inst = Inst::Deserialize(insts, it);
+        Inst* ptr = &*AppendNewInst(std::move(inst));
+        insts.push_back(ptr);
+    }
+
+    SetTerminal(DeserializeTerminal(it));
+    SetEndLocation(LocationDescriptor::Deserialize(it));
+}
+
+void Block::SerializeTerminal(const Term::Terminal& term, std::vector<uint16_t>& fres) {
+    fres.push_back(0xa91f);
+
+    struct Visitor : boost::static_visitor<void> {
+        std::vector<uint16_t>& fres;
+
+        Visitor(std::vector<uint16_t>& fres) : fres(fres) {}
+
+        void operator()(const Term::Invalid&) const {
+            fres.push_back(0);
+        }
+        void operator()(const Term::Interpret& interp) const {
+            fres.push_back(1);
+            interp.next.Serialize(fres);
+            ASSERT(interp.num_instructions <= 0xffff);
+            fres.push_back(static_cast<uint16_t>(interp.num_instructions));
+        }
+        void operator()(const Term::ReturnToDispatch&) const {
+            fres.push_back(2);
+        }
+        void operator()(const Term::LinkBlock& link_block) const {
+            fres.push_back(3);
+            link_block.next.Serialize(fres);
+        }
+        void operator()(const Term::LinkBlockFast& link_block_fast) const {
+            fres.push_back(4);
+            link_block_fast.next.Serialize(fres);
+        }
+        void operator()(const Term::PopRSBHint&) const {
+            fres.push_back(5);
+        }
+        void operator()(const Term::FastDispatchHint&) const {
+            fres.push_back(6);
+        }
+        void operator()(const Term::If& if_) const {
+            fres.push_back(7);
+            fres.push_back(static_cast<uint16_t>(if_.if_));
+            SerializeTerminal(if_.then_, fres);
+            SerializeTerminal(if_.else_, fres);
+        }
+        void operator()(const Term::CheckBit& check_bit) const {
+            fres.push_back(8);
+            SerializeTerminal(check_bit.then_, fres);
+            SerializeTerminal(check_bit.else_, fres);
+        }
+        void operator()(const Term::CheckHalt& check_bit) const {
+            fres.push_back(9);
+            SerializeTerminal(check_bit.else_, fres);
+        }
+    } visitor{fres};
+
+    boost::apply_visitor(visitor, term);
+}
+
+Term::Terminal Block::DeserializeTerminal(std::vector<uint16_t>::iterator& it) {
+    const bool magic_ok = *(it++) == 0xa91f;
+    ASSERT_MSG(magic_ok, "Bad IR block magic");
+
+    Term::Terminal fres;
+
+    const auto term_idx = *(it++);
+    switch (term_idx) {
+    case 0: {
+        fres = Term::Invalid();
+    } break;
+    case 1: {
+        Term::Interpret interp(LocationDescriptor::Deserialize(it));
+        interp.num_instructions = *(it++);
+        fres = std::move(interp);
+    } break;
+    case 2: {
+        fres = Term::ReturnToDispatch();
+    } break;
+    case 3: {
+        fres = Term::LinkBlock(LocationDescriptor::Deserialize(it));
+    } break;
+    case 4: {
+        fres = Term::LinkBlockFast(LocationDescriptor::Deserialize(it));
+    } break;
+    case 5: {
+        fres = Term::PopRSBHint();
+    } break;
+    case 6: {
+        fres = Term::FastDispatchHint();
+    } break;
+    case 7: {
+        const auto cond = static_cast<Cond>(*(it++));
+        Term::Terminal then = DeserializeTerminal(it);
+        Term::Terminal else_ = DeserializeTerminal(it);
+        fres = Term::If(cond, std::move(then), std::move(else_));
+    } break;
+    case 8: {
+        Term::Terminal then = DeserializeTerminal(it);
+        Term::Terminal else_ = DeserializeTerminal(it);
+        fres = Term::CheckBit(std::move(then), std::move(else_));
+    } break;
+    case 9: {
+        Term::Terminal else_ = DeserializeTerminal(it);
+        fres = Term::CheckHalt(std::move(else_));
+    } break;
+    default: ASSERT_FALSE("Invalid terminal type index");
+    }
+
+    return fres;
 }
 
 static std::string TerminalToString(const Terminal& terminal_variant) {

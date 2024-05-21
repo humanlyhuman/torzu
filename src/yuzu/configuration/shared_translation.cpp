@@ -76,9 +76,11 @@ std::unique_ptr<TranslationMap> InitializeTranslations(QWidget* parent) {
         tr("Synchronizes CPU core speed to game's maximum rendering speed, which can be useful to "
            "increase FPS without increasing the actual speed of the game (animations, physics, "
            "etc.)\n"
-           "It's up to each game if it plays well with this or not. Most games (specially original "
-           "ones) "
+           "It's up to each game if it plays well with this or not. Most games (specially originals) "
            "simply ignore this.\nThis can help play the game stutter-free at a lower framerate."));
+    INSERT(Settings, ir_cache, tr("Recompiler cache"),
+           tr("Caches optimized IR from recompiler. Improves performance\nin some scenarios at the "
+              "cost of increased disk activity and space consumption."));
 
     // Cpu
     INSERT(Settings, cpu_accuracy, tr("Accuracy:"),

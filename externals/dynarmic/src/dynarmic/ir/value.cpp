@@ -198,21 +198,46 @@ AccType Value::GetAccType() const {
 }
 
 void Value::Serialize(const Block& block, std::vector<uint16_t>& fres) const {
+    fres.push_back(0xa91c);
+
     fres.push_back(static_cast<uint16_t>(type));
     if (type != Type::Opaque) {
         for (unsigned it = 0; it != sizeof(inner.raw)/sizeof(*inner.raw); it++)
             fres.push_back(inner.raw[it]);
-    } else {
-        unsigned it = 0;
-        for (const auto& instr : block) {
-            if (&instr == inner.inst) {
-                fres.push_back(it);
-                return;
-            }
-            ++it;
-        }
-        ASSERT_MSG(false, "Instruction index not found");
+        return;
     }
+
+    unsigned it = 0;
+    for (const auto& instr : block) {
+        if (&instr == inner.inst) {
+            fres.push_back(it);
+            return;
+        }
+        ++it;
+    }
+
+    ASSERT_FALSE("Instruction index not found");
+    UNREACHABLE();
+}
+
+Value Value::Deserialize(const std::vector<Inst*>& insts, std::vector<uint16_t>::iterator& it) {
+    const bool magic_ok = *(it++) == 0xa91c;
+    ASSERT_MSG(magic_ok, "Bad IR value magic");
+
+    Value fres;
+    fres.type = static_cast<Type>(*(it++));
+
+    if (fres.type != Type::Opaque) {
+        for (unsigned idx = 0; idx != sizeof(inner.raw)/sizeof(*inner.raw); idx++)
+            fres.inner.raw[idx] = *(it++);
+        return fres;
+    }
+
+    const auto idx = *(it++);
+    ASSERT(idx < insts.size());
+
+    fres.inner.inst = insts[idx];
+    return fres;
 }
 
 s64 Value::GetImmediateAsS64() const {

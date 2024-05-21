@@ -129,6 +129,7 @@ public:
         GenerateYuzuPath(YuzuPath::ScreenshotsDir, yuzu_path / SCREENSHOTS_DIR);
         GenerateYuzuPath(YuzuPath::SDMCDir, yuzu_path / SDMC_DIR);
         GenerateYuzuPath(YuzuPath::ShaderDir, yuzu_path / SHADER_DIR);
+        GenerateYuzuPath(YuzuPath::RecompilerDir, yuzu_path / RECOMPILER_DIR);
         GenerateYuzuPath(YuzuPath::TASDir, yuzu_path / TAS_DIR);
         GenerateYuzuPath(YuzuPath::IconsDir, yuzu_path / ICONS_DIR);
     }

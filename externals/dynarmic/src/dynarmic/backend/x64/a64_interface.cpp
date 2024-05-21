@@ -6,6 +6,8 @@
 #include <cstring>
 #include <memory>
 #include <mutex>
+#include <fstream>
+#include <filesystem>
 
 #include <boost/icl/interval_set.hpp>
 #include <mcl/assert.hpp>
@@ -268,6 +270,28 @@ private:
         }
         block_of_code.EnsureMemoryCommitted(MINIMUM_REMAINING_CODESIZE);
 
+        // Get cache path
+        const auto cache_path = std::filesystem::path(conf.ir_cache_path) / (std::to_string(current_location.Value())+".ir");
+
+        // Load from disk cache
+        if (!conf.ir_cache_path.empty()) {
+            std::ifstream cache_file(cache_path, std::ios::binary);
+            if (cache_file) {
+                // Read entire file
+                std::vector<uint16_t> data;
+                while (cache_file.read(reinterpret_cast<char*>(&data.emplace_back(0)), sizeof(data[0])));
+                data.pop_back();
+                cache_file.close();
+                // Deserialize file
+                IR::Block ir_block(A64::LocationDescriptor{current_location});
+                auto it = data.begin();
+                ir_block.Deserialize(it);
+                ASSERT(!(it > data.end()));
+                ASSERT(!(it < data.end()));
+                return emitter.Emit(ir_block).entrypoint;
+            }
+        }
+
         // JIT Compile
         const auto get_code = [this](u64 vaddr) { return conf.callbacks->MemoryReadCode(vaddr); };
         IR::Block ir_block = A64::Translate(A64::LocationDescriptor{current_location}, get_code,
@@ -287,6 +311,16 @@ private:
             Optimization::A64MergeInterpretBlocksPass(ir_block, conf.callbacks);
         }
         Optimization::VerificationPass(ir_block);
+
+        // Store to disk cache if non-empty
+        if (!conf.ir_cache_path.empty() && !ir_block.empty()) {
+            std::ofstream cache_file(cache_path, std::ios::binary);
+            ASSERT_MSG(cache_file, "Failed to write cache file");
+            std::vector<uint16_t> data;
+            ir_block.Serialize(data);
+            cache_file.write(reinterpret_cast<const char*>(data.data()), data.size()*sizeof(data[0]));
+        }
+
         return emitter.Emit(ir_block).entrypoint;
     }
 

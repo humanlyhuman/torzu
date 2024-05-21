@@ -25,8 +25,17 @@ constexpr size_t max_arg_count = 4;
  */
 class Inst final : public mcl::intrusive_list_node<Inst> {
 public:
-    explicit Inst(Opcode op)
+    Inst(Opcode op)
             : op(op) {}
+    Inst(Inst&& o)
+            : op(o.op), use_count(o.use_count), name(o.name), args(o.args), next_pseudoop(o.next_pseudoop) {
+        o.use_count = 0;
+        o.name = 0;
+        std::fill(o.args.begin(), o.args.end(), Value());
+        o.next_pseudoop = nullptr;
+    }
+    Inst(const Inst& o)
+            : op(o.op), use_count(o.use_count), name(o.name), args(o.args), next_pseudoop(o.next_pseudoop) {}
 
     /// Determines whether or not this instruction performs an arithmetic shift.
     bool IsArithmeticShift() const;
@@ -137,6 +146,7 @@ public:
     void SetArg(size_t index, Value value);
 
     void Serialize(const Block&, std::vector<uint16_t>&) const;
+    static Inst Deserialize(const std::vector<Inst*>&, std::vector<uint16_t>::iterator&);
 
     void Invalidate();
     void ClearArgs();

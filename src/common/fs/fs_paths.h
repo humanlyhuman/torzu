@@ -23,6 +23,7 @@
 #define SCREENSHOTS_DIR "screenshots"
 #define SDMC_DIR "sdmc"
 #define SHADER_DIR "shader"
+#define RECOMPILER_DIR "recompiler"
 #define TAS_DIR "tas"
 #define ICONS_DIR "icons"
 

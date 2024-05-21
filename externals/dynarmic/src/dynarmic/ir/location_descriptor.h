@@ -7,6 +7,7 @@
 
 #include <functional>
 #include <string>
+#include <vector>
 
 #include <fmt/format.h>
 #include <mcl/stdint.hpp>
@@ -25,6 +26,9 @@ public:
     bool operator!=(const LocationDescriptor& o) const {
         return !operator==(o);
     }
+
+    void Serialize(std::vector<uint16_t>& fres) const;
+    static LocationDescriptor Deserialize(std::vector<uint16_t>::iterator&);
 
     u64 Value() const { return value; }
 

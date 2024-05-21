@@ -83,8 +83,10 @@ public:
      *
      * @param op   Opcode representing the instruction to add.
      * @param args A sequence of Value instances used as arguments for the instruction.
+     * @returns Iterator to the newly created instruction.
      */
-    void AppendNewInst(Opcode op, std::initializer_list<Value> args);
+    Block::iterator AppendNewInst(Opcode op, std::initializer_list<Value> args);
+    Block::iterator AppendNewInst(Inst&& inst);
 
     /**
      * Prepends a new instruction to this basic block before the insertion point,
@@ -96,6 +98,7 @@ public:
      * @returns Iterator to the newly created instruction.
      */
     iterator PrependNewInst(iterator insertion_point, Opcode op, std::initializer_list<Value> args);
+    iterator PrependNewInst(iterator insertion_point, Inst&& inst);
 
     /// Gets the starting location for this basic block.
     LocationDescriptor Location() const;
@@ -141,8 +144,12 @@ public:
     const size_t& CycleCount() const;
 
     void Serialize(std::vector<uint16_t>&) const;
+    void Deserialize(std::vector<uint16_t>::iterator&);
 
 private:
+    static void SerializeTerminal(const Terminal&, std::vector<uint16_t>&);
+    static Terminal DeserializeTerminal(std::vector<uint16_t>::iterator&);
+
     /// Description of the starting location of this block
     LocationDescriptor location;
     /// Description of the end location of this block

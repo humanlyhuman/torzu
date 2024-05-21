@@ -652,6 +652,13 @@ void Inst::SetArg(size_t index, Value value) {
     args[index] = value;
 }
 
+void Inst::Serialize(const Block& block, std::vector<uint16_t>& fres) const {
+    fres.push_back(static_cast<uint16_t>(GetOpcode()));
+    fres.push_back(NumArgs());
+    for (unsigned idx = 0; idx != NumArgs(); idx++)
+        GetArg(idx).Serialize(block, fres);
+}
+
 void Inst::Invalidate() {
     ClearArgs();
     op = Opcode::Void;

@@ -26,6 +26,7 @@ enum class Vec;
 namespace Dynarmic::IR {
 
 class Inst;
+class Block;
 enum class AccType;
 enum class Cond;
 
@@ -74,6 +75,8 @@ public:
     CoprocessorInfo GetCoprocInfo() const;
     Cond GetCond() const;
     AccType GetAccType() const;
+
+    void Serialize(const Block&, std::vector<uint16_t>&) const;
 
     /**
      * Retrieves the immediate of a Value instance as a signed 64-bit value.
@@ -147,6 +150,7 @@ private:
         CoprocessorInfo imm_coproc;
         Cond imm_cond;
         AccType imm_acctype;
+        uint16_t raw[4];
     } inner;
 };
 static_assert(sizeof(Value) <= 2 * sizeof(u64), "IR::Value should be kept small in size");

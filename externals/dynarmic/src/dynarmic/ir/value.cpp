@@ -197,6 +197,24 @@ AccType Value::GetAccType() const {
     return inner.imm_acctype;
 }
 
+void Value::Serialize(const Block& block, std::vector<uint16_t>& fres) const {
+    fres.push_back(static_cast<uint16_t>(type));
+    if (type != Type::Opaque) {
+        for (unsigned it = 0; it != sizeof(inner.raw)/sizeof(*inner.raw); it++)
+            fres.push_back(inner.raw[it]);
+    } else {
+        unsigned it = 0;
+        for (const auto& instr : block) {
+            if (&instr == inner.inst) {
+                fres.push_back(it);
+                return;
+            }
+            ++it;
+        }
+        ASSERT_MSG(false, "Instruction index not found");
+    }
+}
+
 s64 Value::GetImmediateAsS64() const {
     ASSERT(IsImmediate());
 

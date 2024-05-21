@@ -120,6 +120,11 @@ const size_t& Block::CycleCount() const {
     return cycle_count;
 }
 
+void Block::Serialize(std::vector<uint16_t>& fres) const {
+    for (const auto& inst : *this)
+        inst.Serialize(*this, fres);
+}
+
 static std::string TerminalToString(const Terminal& terminal_variant) {
     struct : boost::static_visitor<std::string> {
         std::string operator()(const Term::Invalid&) const {

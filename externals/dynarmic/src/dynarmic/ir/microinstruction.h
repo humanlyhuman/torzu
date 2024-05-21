@@ -136,6 +136,8 @@ public:
     Value GetArg(size_t index) const;
     void SetArg(size_t index, Value value);
 
+    void Serialize(const Block&, std::vector<uint16_t>&) const;
+
     void Invalidate();
     void ClearArgs();
 

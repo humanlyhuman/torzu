@@ -43,6 +43,9 @@ IR::Block Translate(LocationDescriptor descriptor, MemoryReadCodeFuncType memory
 
     ASSERT_MSG(block.HasTerminal(), "Terminal has not been set");
 
+    std::vector<uint16_t> fres;
+    block.Serialize(fres);
+
     block.SetEndLocation(*visitor.ir.current_location);
 
     return block;

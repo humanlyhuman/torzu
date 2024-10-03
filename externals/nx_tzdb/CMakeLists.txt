@@ -32,23 +32,22 @@ set(NX_TZDB_ARCHIVE "${CMAKE_CURRENT_BINARY_DIR}/${NX_TZDB_VERSION}.zip")
 
 set(NX_TZDB_ROMFS_DIR "${CMAKE_CURRENT_BINARY_DIR}/nx_tzdb")
 
-# Comment out the downloading section
-#if ((NOT CAN_BUILD_NX_TZDB OR YUZU_DOWNLOAD_TIME_ZONE_DATA) AND NOT EXISTS ${NX_TZDB_ROMFS_DIR})
-#    set(NX_TZDB_DOWNLOAD_URL "https://github.com/lat9nq/tzdb_to_nx/releases/download/221202/221202.zip")
+if ((NOT CAN_BUILD_NX_TZDB OR YUZU_DOWNLOAD_TIME_ZONE_DATA) AND NOT EXISTS ${NX_TZDB_ROMFS_DIR})
+    set(NX_TZDB_DOWNLOAD_URL "https://github.com/lat9nq/tzdb_to_nx/releases/download/221202/221202.zip")
 
-#    message(STATUS "Downloading time zone data from ${NX_TZDB_DOWNLOAD_URL}...")
-#    file(DOWNLOAD ${NX_TZDB_DOWNLOAD_URL} ${NX_TZDB_ARCHIVE}
-#        STATUS NX_TZDB_DOWNLOAD_STATUS)
-#    list(GET NX_TZDB_DOWNLOAD_STATUS 0 NX_TZDB_DOWNLOAD_STATUS_CODE)
-#    if (NOT NX_TZDB_DOWNLOAD_STATUS_CODE EQUAL 0)
-#        message(FATAL_ERROR "Time zone data download failed (status code ${NX_TZDB_DOWNLOAD_STATUS_CODE})")
-#    endif()
+    message(STATUS "Downloading time zone data from ${NX_TZDB_DOWNLOAD_URL}...")
+    file(DOWNLOAD ${NX_TZDB_DOWNLOAD_URL} ${NX_TZDB_ARCHIVE}
+        STATUS NX_TZDB_DOWNLOAD_STATUS)
+    list(GET NX_TZDB_DOWNLOAD_STATUS 0 NX_TZDB_DOWNLOAD_STATUS_CODE)
+    if (NOT NX_TZDB_DOWNLOAD_STATUS_CODE EQUAL 0)
+        message(FATAL_ERROR "Time zone data download failed (status code ${NX_TZDB_DOWNLOAD_STATUS_CODE})")
+    endif()
 
-#    file(ARCHIVE_EXTRACT
-#        INPUT
-#            ${NX_TZDB_ARCHIVE}
-#        DESTINATION
-#            ${NX_TZDB_ROMFS_DIR})
+    file(ARCHIVE_EXTRACT
+        INPUT
+            ${NX_TZDB_ARCHIVE}
+        DESTINATION
+            ${NX_TZDB_ROMFS_DIR})
 #elseif (CAN_BUILD_NX_TZDB AND NOT YUZU_DOWNLOAD_TIME_ZONE_DATA)
 
     add_subdirectory(tzdb_to_nx)
